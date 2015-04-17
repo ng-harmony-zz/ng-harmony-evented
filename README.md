@@ -38,6 +38,8 @@ Import bean, a dependency-less eventing lib, and zest, a tiny and fast selector-
     class PowerCtrl extends Ctrl {
         constructor(...args) {
             super(...args);
+        }
+        initialize() {
             for (let [key, fn] of this.iterate(this.constructor.prototype)) {
                 if (typeof fn !== "function" ||
                     !!~["constructor", "initialize"].indexOf(key) ||
@@ -75,6 +77,13 @@ Import bean, a dependency-less eventing lib, and zest, a tiny and fast selector-
                     }
                 }
             }
+            if (typeof super.initialize === "function") {
+                super.initialize();
+            }
         }
     }
 ```
+
+## CHANGELOG
+
+*0.1.1*: Since the PowerCtrl is a case for a Mixin and constructors aren't easily mixed in I gave it its own init-function
