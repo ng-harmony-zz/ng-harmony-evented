@@ -3,7 +3,9 @@
   "version": "0.1.0",
   "description": "Programmatic Eventing in Ctrl-Classes in Angular",
   "main": "dist/es5/system_module.js",
-  "dependencies": {},
+  "dependencies": {
+    "ng-harmony": "^0.2.0"
+  },
   "devDependencies": {
     "babel": "^5.1.10",
     "js-beautify": "^1.5.5",
