@@ -31,9 +31,9 @@ Iterating over the prototype, filtering private properties and initialization, w
 Import bean, a dependency-less eventing lib, and zest, a tiny and fast selector-engine.
 ```javascript
 
-    import bean from 'bean';
+    import bean from 'fat/bean';
     import zest from 'zest';
-    import { Ctrl } from 'ng-harmony';
+    import { Ctrl } from 'ng-harmonyng-harmony';
 
     class PowerCtrl extends Ctrl {
         constructor(...args) {
