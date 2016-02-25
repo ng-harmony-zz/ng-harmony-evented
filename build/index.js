@@ -37,7 +37,7 @@
         }
     }
 
-    class EventedController extends Controller {
+    export class EventedController extends Controller {
         constructor(...args) {
             super(...args);
 

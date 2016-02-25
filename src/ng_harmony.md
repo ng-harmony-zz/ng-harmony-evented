@@ -97,7 +97,7 @@ Basically, you decouple the event-listening from your html and put it into your 
 Conventions apply, examples at a later point in time ...
 
 ```javascript
-    class EventedController extends Controller {
+    export class EventedController extends Controller {
         constructor(...args) {
             super(...args);
 
