@@ -44,7 +44,7 @@
             for (let [key, fn] of this.iterate(this.constructor.prototype)) {
                 if (typeof fn !== "function" ||
                     !!~["constructor", "initialize"].indexOf(key) ||
-                    !!~["_", "§"].indexOf(key[0])) {
+                    !!~["_", "§", "$"].indexOf(key[0])) {
                     continue;
                 }
                 if (key.match("::")) {
@@ -52,10 +52,10 @@
                     if ((tokens[2] !== undefined && tokens[2] !== null) && !!~tokens[2].indexOf(">")) {
                         tokens = tokens.splice(0, 2).concat(tokens[0].split(">"));
                     }
-                    el = this.$element ? this.$element.context : document.body;
+                    let element = this.$element ? this.$element.context : document.body;
                     for (let [i, el] of (tokens[0] ?
-                            zest(tokens[0], el).entries() :
-                            [el].entries())) {
+                            zest(tokens[0], element).entries() :
+                            [element].entries())) {
                         ((_i, _el, _fn) => {
                             __fn = (ev, ...args) => {
                                 if (tokens[2] !== undefined && tokens[2] !== null) {
