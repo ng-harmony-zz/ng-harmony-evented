@@ -64,7 +64,7 @@ export class EventedController extends Controller {
                                 }
                             }
                             _fn.call(this, ev, ...args);
-                            this._digest();
+                            this.digest();
                         };
                         bean.on(_el, tokens[1], tokens[2] || __fn, tokens[2] ? __fn : null);
                     })(i, el, fn);
