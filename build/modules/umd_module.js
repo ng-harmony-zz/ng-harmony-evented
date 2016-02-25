@@ -48,7 +48,7 @@ export class EventedController extends Controller {
                 let element = this.$element ? this.$element.context : document.body;
                 for (let [i, el] of tokens[0] ? zest(tokens[0], element).entries() : [element].entries()) {
                     ((_i, _el, _fn) => {
-                        __fn = (ev, ...args) => {
+                        let __fn = (ev, ...args) => {
                             if (tokens[2] !== undefined && tokens[2] !== null) {
                                 if (tokens[3] !== undefined && tokens[3] !== null) {
                                     let __el = ev.currentTarget.parentNode;
