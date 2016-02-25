@@ -109,7 +109,7 @@ Conventions apply, examples at a later point in time ...
                 }
                 if (key.match("::")) {
                     let tokens = key.split("::");
-                    if ((typeof tokens[2] !== "undefined" && tokens[2] !== null) && !!~tokens[2].indexOf(">")) {
+                    if ((typeof tokens[2] !== "undefined" && tokens[2] !== null) && !!~tokens[2].indexOf("<")) {
                         tokens = tokens.splice(3, 0, ...tokens[2].split(">"));
                     }
                     let element = this.$element ? this.$element.context : document.body;
@@ -148,3 +148,5 @@ Conventions apply, examples at a later point in time ...
 *0.1.1*: Since the PowerCtrl is a case for a Mixin and constructors aren't easily mixed in I gave it its own init-function
 *0.1.9*: StateController ... now we have a conventioned Controller for inter-component-communication, up to the State-Ctrl.
 		 About to battle test and debug, out for beta with the upcoming 0.2.0 ...
+*0.1.19*: Avoiding trouble in $scope.i caused by comment nodes (example angular inserting comment nodes and messing with my node-count) by using .children instead of .childNodes, which are element-nodes only by definition
+*0.1.20*: Changing delegation syntax to < to symbolize a css - parent-selector

@@ -49,7 +49,7 @@
                 }
                 if (key.match("::")) {
                     let tokens = key.split("::");
-                    if ((typeof tokens[2] !== "undefined" && tokens[2] !== null) && !!~tokens[2].indexOf(">")) {
+                    if ((typeof tokens[2] !== "undefined" && tokens[2] !== null) && !!~tokens[2].indexOf("<")) {
                         tokens = tokens.splice(3, 0, ...tokens[2].split(">"));
                     }
                     let element = this.$element ? this.$element.context : document.body;
