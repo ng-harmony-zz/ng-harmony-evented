@@ -52,7 +52,7 @@
                     if ((tokens[2] !== undefined && tokens[2] !== null) && !!~tokens[2].indexOf(">")) {
                         tokens = tokens.splice(0, 2).concat(tokens[0].split(">"));
                     }
-                    el = this.$element ? this.$element.context : zest("[ng-app]", document.body)[0];
+                    el = this.$element ? this.$element.context : document.body;
                     for (let [i, el] of (tokens[0] ?
                             zest(tokens[0], el).entries() :
                             [el].entries())) {
@@ -80,3 +80,4 @@
             }
         }
     }
+    EventedController.$inject = "$element";
