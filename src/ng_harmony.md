@@ -110,7 +110,7 @@ Conventions apply, examples at a later point in time ...
                 if (key.match("::")) {
                     let tokens = key.split("::");
                     if ((typeof tokens[2] !== "undefined" && tokens[2] !== null) && !!~tokens[2].indexOf(">")) {
-                        tokens = tokens.splice(3, 0, ...tokens[2].split(">"));
+                        tokens = tokens.splice(2, 1, ...tokens[2].split(">"));
                     }
                     let element = this.$element ? this.$element.context : document.body;
                     for (let [i, el] of (tokens[0] ?
