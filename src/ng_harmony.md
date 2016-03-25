@@ -45,12 +45,13 @@ Import bean, a dependency-less eventing lib, and zest, a tiny and fast selector-
 	import bean from 'fat/bean';
 	import zest from 'zest';
 	import { Harmony, Controller } from 'ng-harmony/ng-harmony';
+	import { Mixin } from 'ng-harmony/ng-harmony-annotate';
 ```
 
 First, there's the *StateController*, a behavioural convenience machine ...
 Write your member foos - controller methods - like this (prefixed with a §, and don't forget the hyphens):
 
-"§listenedToEventTitle::afterBehaviourBroadcastedEvent"(...args) {};
+"§listenedToEventTitle->afterBehaviourBroadcastedEvent"(...args) {};
 
 I'll create proper usage examples and demo code later ...
 
@@ -61,7 +62,7 @@ export class RouteController extends Controller {
 	constructor(...args) {
 		super(...args);
 
-		this.$scope.$on(`${this.constructor.TOKEN_BEHAVIOUR_SYMBOL}register`,
+		this.$scope.$on("register",
 			(ev, f, t, s, p, d, listener) => {
 				s(); //stopPropagation
 				p(); //preventDefault
@@ -73,20 +74,20 @@ export class RouteController extends Controller {
 				}
 			}
 		);
-		this.$scope.$on(`${this.constructor.TOKEN_BEHAVIOUR_SYMBOL}behaviour`,
+		this.$scope.$on("behaviour",
 			(ev, f, t, s, p, d, behaviour) => {
 				s(); //stopPropagation
 				p(); //preventDefault
 				this.behaviourQueue = behaviour;
-				this.behaviourQueue.next();
+				this.behaviour();
 			}
 		);
 	}
+	get LISTENERS () {
+		return this._LISTENERS || [];
+	}
 	set LISTENERS (o) {
-		let _o = o;
-		if (!Array.isArray(o)) {
-			_o = [o];
-		}
+		let _o = [].concat(o);
 		for (let [i, l] of _o.entries()) {
 			if (this.constructor.LISTENERS.length) {
 				throw new Error("No transient definitions found ... not registering listeners");
@@ -114,31 +115,7 @@ export class RouteController extends Controller {
 		}
 	}
 	get behaviourQueue () {
-		if (!Array.isArray(this._behaviourQueue)) {
-			return {
-				queue: [],
-				next: () => {
-					console.warn("behaviourQueue empty ... nothing to do");
-				}
-			}
-		}
-		return {
-			queue: this._behaviourQueue,
-			next: () => {
-				if (this.idle === false) {
-					console.info("Behaviour in progress, hold on fast ...");
-					return;
-				}
-				let b = this._behaviourQueue.unshift();
-				this.idle = false;
-				let uid = this._mapTransient(o);
-				this._behaviour({
-					uid: uid,
-					fromState: o.fromState,
-					toState: o.toState
-				});
-			}
-		};
+		return this._behaviourQueue || [];
 	}
 	set behaviourQueue (behaviour) {
 		if (this._isEmpty(this._behaviourQueue)) {
@@ -167,6 +144,12 @@ export class RouteController extends Controller {
 	static set TOKEN_BEHAVIOUR_SEPARATOR (s) {
 		this._TOKEN_BEHAVIOUR_SEPARATOR = s;
 	}
+	static get TOKEN_LOGIC_SEPARATOR () {
+		return this._TOKEN_LOGIC_SEPARATOR || "::";
+	}
+	static set TOKEN_LOGIC_SEPARATOR (s) {
+		this._TOKEN_LOGIC_SEPARATOR = s;
+	}
 	static get TOKEN_BEHAVIOUR_SYMBOL () {
 		return this._TOKEN_BEHAVIOUR_SYMBOL || "§";
 	}
@@ -179,8 +162,7 @@ export class RouteController extends Controller {
 	static set TOKEN_CHILD_SYMBOL (s) {
 		this._TOKEN_CHILD_SYMBOL = s;
 	}
-
-	_mapTransient (o) {
+	_mapTransientByEl (o) {
 		let m = this.LISTENERS.filter((el, i, arr) => {
 			let z = zest(el.css, document.body);
 			if (z[0] === o.el) {
@@ -199,51 +181,85 @@ export class RouteController extends Controller {
 		}
 		return m[0].uid;
 	}
-	_behaviour (transient) {
+	_mapTransientByUID (o) {
+		return this.LISTENERS.filter((el, i, arr) => {
+			if (el.uid === o.uid) {
+				return true;
+			}
+		})[0];
+	}
+	behaviour () {
+		if (this.idle === false) {
+			console.info("Behaviour in progress, hold on fast ...");
+			return;
+		}
+		if (!this.behaviourQueue.length) {
+			console.info("Behaviour Queue empty, idling out ...");
+			return;
+		}
+		let b = this.behaviourQueue.unshift();
+		this.idle = false;
+		this._behaviour(this._mapTransientByEl(b), b.fromState, b.toState)
+			.then(this.behaviour)
+			.catch(this.behaviour);
+	}
+	_behaviour (uid, fromState, toState) {
+		return new Promise((resolve, reject) => {
+			this.__behaviour({
+				uid: uid,
+				fromState: fromState,
+				toState: toState
+			})
+				.then((...args) {
+					this.___behaviour(...args)
+						.then(() => {
+							this.idle = true;
+							resolve();
+						})
+						.catch((el) => {
+							this.idle = true;
+							console.dir({
+								component: el.ctx,
+								fromState: el.fromState,
+								toState: el.toState
+							});
+						throw new Error("State Transition malfunction in subcomponent ...");						
+					})
+				})
+				.catch((e) {
+					this.idle = true;
+					throw new Error("Result of Child Function call unsuccessfull");
+				})
+		});
+	}
+	__behaviour (transient) {
 		let tbs = this.constructor.TOKEN_BEHAVIOUR_SYMBOL,
 			tcs = this.constructor.TOKEN_CHILD_SYMBOL,
-			tbsep = this.constructor.TOKEN_BEHAVIOUR_SEPARATOR;
-		this._validate(this[`${tbs}${tcs}${transient.uid}::${transient.fromState}->${transient.toState}`])
-			.then((transientMapping) => {
-				((_transientMapping) => {
-					let countdown = _transientMapping.length;
-					let q = new Promise((resolve, reject) => {
-						for (let [i, el] of _transientMapping.entries()) {
-							((_el) => {
-								this._validate(_el.ctx[`${tbs}${tcs}${_el.from}${tbsep}${_el.to}`].bind(_el.ctx))
-									.then(() => {
-										if (--countdown < 1) {
-											resolve();
-										};
-									})
-									.catch(() => {
-										reject(_el);
-									});
-							})(el);
-						}
-					});
-					return q;
-				})(transientMapping)
-					.then(() => {
-						this.idle = true;
-						this.behaviourQueue.next();
-					})
-					.catch((el) => {
-						this.idle = true;
-						console.warn("State Transition malfunction in subcomponent ...");
-						console.dir({
-							component: el.ctx,
-							fromState: el.from,
-							toState: el.to
+			tlsep = this.constructor.TOKEN_LOGIC_SEPARATOR,
+			tbsep = this.constructor.TOKEN_BEHAVIOUR_SEPARATOR,
+		return new Promise((resolve, reject) => {
+			this._validate(this[`${tbs}${transient.uid}${tlsep}${transient.fromState}${tbsep}${transient.toState}`])
+				.then((...args) => resolve(tbs, tcs, tlsep, tbsep, ...args);)
+				.catch((e) => { reject(e); })
+		});
+	}
+	___behaviour (tbs, tcs, tlsep, tbsep, transientMapping) {
+		let countdown = _transientMapping.length;
+		return new Promise((resolve, reject) => {
+			for (let [i, el] of _transientMapping.entries()) {
+				((_el) => {
+					this._validate(_el.ctx[`${tbs}${tcs}${_el.fromState}${tbsep}${_el.toState}`].bind(_el.ctx))
+						.then(() => {
+							if (--countdown < 1) {
+								resolve();
+							};
+						})
+						.catch(() => {
+							reject(_el);
 						});
-						console.log(e);
-					})
-			})
-			.catch((e) => {
-				this.idle = true;
-				console.warn("State Transition malfunction or no transition planned");
-				console.log(e);
-			})
+				})(this._mapTransientByUID(el));
+			}
+		});
 	}
 ```
 
@@ -367,7 +383,7 @@ Conventions apply, examples at a later point in time ...
 				!~[this.constructor.TOKEN_EVENT_SYMBOL].indexOf(key[0]));
 		}
 		_emit (triggerFn, tokens) {
-			this.$scope.$emit("$?change", {
+			this.$scope.$emit("change", {
 				scope: this,
 				triggerFn: triggerFn,
 				triggerTokens: tokens
@@ -376,11 +392,11 @@ Conventions apply, examples at a later point in time ...
 	}
 	EventedController.$inject = ["$element", "$timeout"];
 
-export class StatefulController extends RouteController {
+export class StatefulController extends @Mixin([EventedController]) RouteController {
 	constructor (...args) {
 		super(...args);
 
-		this.$scope.$emit("§register", {
+		this.$scope.$emit("register", {
 			name: this._name,
 			ctx: this,
 			el: this.$element.context
@@ -391,46 +407,81 @@ export class StatefulController extends RouteController {
 				continue;
 			}
 			let keys = key.split(",");
-			if (keys.length > 1) {
-				for (let [i, curKey] of keys.entries()) {
-					this._validate(hook(curKey));
-				}
-			}
-			let kungFoo = () => {
 
-			}
 			let hook = (phrase) => {
 				let type = key.charAt(0),
-					subType = null;
-				if (type === this.constructor.TOKEN_BEHAVIOUR_SYMBOL) {
-					subType = key.charAt(1);
-				}
-				let tokens = this._getTokens(key);
-				if (tokens === false) { return false; }
-
-				if (type === this.constructor.TOKEN_EVENT_SYMBOL) {
-					for (let [i, el] of (tokens[0] ?
-							zest(tokens[0], this.$element.context).entries() :
-							[this.$element.context].entries())) {
-						this.closurize((_key, _fn, _el, _i) => {
-							let __fn = (...args) => {
-								this._preEventedFunction(args[0], _el, _i, tokens);
-								_fn(_el, _i, ...args);
-								this._postEventedFunction(_key, _fn, _el, _i, tokens);
+					ancestryType = key.charAt(1),
+					tokens = null;
+				this._validate(this._getTokens(key))
+					.then((t) => {
+						tokens = t;
+						if (type === this.constructor.TOKEN_EVENT_SYMBOL) {
+							for (let [i, el] of (tokens[0] ?
+									zest(tokens[0], this.$element.context).entries() :
+									[this.$element.context].entries())) {
+								this.closurize((_key, _fn, _el, _i) => {
+									let __fn = (...args) => {
+										this._preEventedFunction(args[0], _el, _i, tokens);
+										let transientMap = _fn(_el, _i, ...args);
+										this._postEventedFunction(_key, _fn, _el, _i, mapping, transientMap);
+									}
+									bean.on(el, tokens[1], tokens[2] || _fn, tokens[2] ? _fn : null);
+								}, this, key, fn, el, i);
+								this.digest();
 							}
-							bean.on(el, tokens[1], tokens[2] || _fn, tokens[2] ? _fn : null);
-						}, this, key, fn, el, i);
-						this.digest();
-					}
-				} else if (type === this.constructor.TOKEN_BEHAVIOUR_SYMBOL) {
-					if (subType !== this.constructor.TOKEN_CHILD_SYMBOL) {
+						} else if (type === this.constructor.TOKEN_BEHAVIOUR_SYMBOL) {
+							if (ancestryType === this.constructor.TOKEN_PARENT_SYMBOL) {
+								this[key] = ((that, _key, _fn, _el, _i) => {
+									return this.closurize((__key, __fn, __el, __i) => {
+										let transientMap = __fn(__el, __i);
+										return this._postEventedFunction(__key, __fn, __el, __i, null, transientMap);
+									}, that, _key, _fn, _el, _i);
+								}).bind(this, key, fn, el, i)
+							} else {
+								this[key] = fn;
+							}
+						}
 
-					} else {
-
-					}
+					})
+					.catch((e) => {
+						throw new Error(`Couldn't validate/parse tokens of given behaviour symbols ${key}`);
+					})
+			}
+			if (keys.length > 1) {
+				let tbs = this.constructor.TOKEN_BEHAVIOUR_SYMBOL,
+					tlsep = this.constructor.TOKEN_LOGIC_SEPARATOR,
+					tss = this.constructor.TOKEN_SELF_SYMBOL,
+					index = -1,
+					mapping = null;
+				if (!!keys.filter((el, i, arr) => {
+					if (el.indexOf(`${tbs}${tbsep}`) === 0) {
+						index = i;
+						mapping = el.slice(tbs.length + tss.length);
+						return true;
+					};
+					return false;
+				}).length) {
+					keys.splice(index, 1);
 				}
+				for (let [i, curKey] of keys.entries()) {
+					this._validate(hook.bind(this, curKey));
+				}
+			} else {
+				this._validate(hook.bind(this, keys[0]))
 			}
 		}
+	}
+	static get TOKEN_PARENT_SYMBOL () {
+		return this._TOKEN_PARENT_SYMBOL || ">";
+	}
+	static set TOKEN_PARENT_SYMBOL (s) {
+		this._TOKEN_PARENT_SYMBOL = s;
+	}
+	static get TOKEN_SELF_SYMBOL () {
+		return this._TOKEN_SELF_SYMBOL || "!";
+	}
+	static set TOKEN_SELF_SYMBOL (s) {
+		this._TOKEN_SELF_SYMBOL = s;
 	}
 	_isEventedFunction (key, val) {
 		if (!this._isFunction(val)) {
@@ -449,22 +500,58 @@ export class StatefulController extends RouteController {
 			let t = _fn.split(this.constructor.TOKEN_EVENT_SEPARATOR);
 			return this._validateTokens(t) ? t : false;
 		} else if (fn.charAt(0) === this.constructor.TOKEN_BEHAVIOUR_SYMBOL) {
-			if (fn.charAt(1) === this.constructor.TOKEN_CHILD_SYMBOL) {
+			if (fn.charAt(1) === this.constructor.TOKEN_CHILD_SYMBOL ||
+				fn.charAt(1) === this.constructor.TOKEN_PARENT_SYMBOL) {
 				_fn = fn.slice(2);
-				let __fn = _fn.split(this.constructor.TOKEN_EVENT_SEPARATOR);
+				let __fn = _fn.split(this.constructor.TOKEN_LOGIC_SEPARATOR);
 				__fn.concat(__fn[1].split(this.constructor.TOKEN_BEHAVIOUR_SEPARATOR);
 				return this._validateTokens(__fn) ? __fn : false;
-			} else {
-				_fn = fn.slice(1);
-				let t = _fn.split(this.constructor.TOKEN_BEHAVIOUR_SEPARATOR);
-				return this._validateTokens(t) ? t : false;
+			}
+			else {
+				throw new Error(`Child Behaviour needs to be prefixed by ${this.constructor.TOKEN_CHILD_SYMBOL}`);
 			}
 		}
+	}
+	_postEventedFunction (key, fn, el, i, tokens, transientMap) {
+		let _tokens = tokens.split(this.constructor.TOKEN_BEHAVIOUR_SEPARATOR),
+			tbs = this.constructor.TOKEN_BEHAVIOUR_SYMBOL,
+			tps = this.constructor.TOKEN_PARENT_SYMBOL,
+			tbsep = this.constructor.TOKEN_BEHAVIOUR_SEPARATOR;
+		this._logEventedFunction(...[key, fn, el, i, transientMap]);
+		return new Promise((resolve, reject) => {
+			this.___behaviour(tbs, tps, null, tbsep, transientMap)
+				.then(() => {
+					if (!this._isEmpty(tokens)) {
+						this._emit(key, {
+							from: _tokens[0],
+							to: _tokens[1]
+						});
+					} else {
+						resolve();
+					}
+				})
+				.catch((e) => {
+					console.warn("Call to child behaviour resulted in unsuccessfull state.");
+					console.warn(e);
+					reject();
+				});
+		});
+	}
+	_emit (triggerFn, tokens) {
+		this.$scope.$emit("behaviour", {
+			el: this.$element.context,
+			fromState: tokens.from,
+			toState: tokens.to
+		});
 	}
 }
 
 
 ```
+
+NEXT STEPS
+Logger
+literature (programming, documentation!)
 
 
 ## CHANGELOG
