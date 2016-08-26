@@ -1,7 +1,7 @@
 {
   "name": "ng-harmony-evented",
   "description": "Programmatic Eventing (Beware: Dom Manipulation!), plus broadcast/emit behavioural conventions for faster inter-component-communication",
-  "version": "0.1.25",
+  "version": "0.1.26",
   "homepage": "https://github.com/joehannes/ng-harmony-evented",
   "author": {
     "name": "DI (FH) Johannes Neugschwentner",
@@ -37,16 +37,24 @@
   "dependencies": {},
   "devDependencies": {
     "babel-cli": "^6.5.1",
+    "babel-plugin-transform-class-properties": "^6.11.5",
+    "babel-plugin-transform-decorators-legacy": "^1.3.4",
+    "babel-preset-es2017": "^6.14.0",
     "babel-preset-stage-3": "^6.5.0",
     "literate-programming": "^0.8.4"
   },
   "keywords": [],
   "jspm": {
     "dependencies": {
+      "angular-ui-router": "github:angular-ui/angular-ui-router-bower@^0.3.1",
       "fat/bean": "github:fat/bean@^1.0.14",
       "ng-harmony/ng-harmony": "github:ng-harmony/ng-harmony@^0.4.0",
       "zest": "npm:zest@^0.1.3"
     },
-    "devDependencies": {}
+    "devDependencies": {
+      "babel": "npm:babel-core@^5.8.24",
+      "babel-runtime": "npm:babel-runtime@^5.8.24",
+      "core-js": "npm:core-js@^1.1.4"
+    }
   }
 }

@@ -44,6 +44,7 @@ Import bean, a dependency-less eventing lib, and zest, a tiny and fast selector-
 
 	import bean from 'fat/bean';
 	import zest from 'zest';
+	import 'angular-ui-router';
 	import { Harmony, Controller } from 'ng-harmony/ng-harmony';
 	import { Mixin } from 'ng-harmony/ng-harmony-annotate';
 ```
@@ -61,7 +62,9 @@ The StateController
 export class RouteController extends Controller {
 	constructor(...args) {
 		super(...args);
-
+		initialize();
+	}
+	initialize () {
 		this.$scope.$on("register",
 			(ev, f, t, s, p, d, listener) => {
 				s(); //stopPropagation
@@ -107,7 +110,7 @@ export class RouteController extends Controller {
 				id: l.name.id,
 				ctx: l.ctx,
 				name: l.name.fn,
-				createdAt: l.name.ts
+				createdAt: l.name.ts,
 				el: l.el || null,
 				css: match.css,
 				uid: match.uid
@@ -176,7 +179,7 @@ export class RouteController extends Controller {
 		if (!m.length) {
 			throw new Error("Your transient mapping doesn't match any listener!");
 		}
-		if (m.length >) {
+		if (m.length > 1) {
 			throw new Error(`Your transient mapping isn't unique ... ${m.length} elements!`);
 		}
 		return m[0].uid;
@@ -210,7 +213,7 @@ export class RouteController extends Controller {
 				fromState: fromState,
 				toState: toState
 			})
-				.then((...args) {
+				.then((...args) => {
 					this.___behaviour(...args)
 						.then(() => {
 							this.idle = true;
@@ -223,10 +226,10 @@ export class RouteController extends Controller {
 								fromState: el.fromState,
 								toState: el.toState
 							});
-						throw new Error("State Transition malfunction in subcomponent ...");						
+						throw new Error("State Transition malfunction in subcomponent ...");
 					})
 				})
-				.catch((e) {
+				.catch((e) => {
 					this.idle = true;
 					throw new Error("Result of Child Function call unsuccessfull");
 				})
@@ -236,10 +239,10 @@ export class RouteController extends Controller {
 		let tbs = this.constructor.TOKEN_BEHAVIOUR_SYMBOL,
 			tcs = this.constructor.TOKEN_CHILD_SYMBOL,
 			tlsep = this.constructor.TOKEN_LOGIC_SEPARATOR,
-			tbsep = this.constructor.TOKEN_BEHAVIOUR_SEPARATOR,
+			tbsep = this.constructor.TOKEN_BEHAVIOUR_SEPARATOR;
 		return new Promise((resolve, reject) => {
 			this._validate(this[`${tbs}${transient.uid}${tlsep}${transient.fromState}${tbsep}${transient.toState}`])
-				.then((...args) => resolve(tbs, tcs, tlsep, tbsep, ...args);)
+				.then((...args) => { resolve(tbs, tcs, tlsep, tbsep, ...args); })
 				.catch((e) => { reject(e); })
 		});
 	}
@@ -392,9 +395,12 @@ Conventions apply, examples at a later point in time ...
 	}
 	EventedController.$inject = ["$element", "$timeout"];
 
-export class StatefulController extends @Mixin([EventedController]) RouteController {
+@Mixin([RouteController])
+export class StatefulController extends EventedController {
 	constructor (...args) {
 		super(...args);
+
+		this.initialize();
 
 		this.$scope.$emit("register", {
 			name: this._name,
@@ -504,7 +510,7 @@ export class StatefulController extends @Mixin([EventedController]) RouteControl
 				fn.charAt(1) === this.constructor.TOKEN_PARENT_SYMBOL) {
 				_fn = fn.slice(2);
 				let __fn = _fn.split(this.constructor.TOKEN_LOGIC_SEPARATOR);
-				__fn.concat(__fn[1].split(this.constructor.TOKEN_BEHAVIOUR_SEPARATOR);
+				__fn.concat(__fn[1].split(this.constructor.TOKEN_BEHAVIOUR_SEPARATOR));
 				return this._validateTokens(__fn) ? __fn : false;
 			}
 			else {
@@ -561,3 +567,4 @@ literature (programming, documentation!)
 		 About to battle test and debug, out for beta with the upcoming 0.2.0 ...
 *0.1.19*: Avoiding trouble in $scope.i caused by comment nodes (example angular inserting comment nodes and messing with my node-count) by using .children instead of .childNodes, which are element-nodes only by definition
 *0.1.20*: Changing delegation syntax to < to symbolize a css - parent-selector
+*<0.2.0*: Debugging
